@@ -1,18 +1,23 @@
 name: Generate CSS Variables from Tokens
 
+# 1. Trigger the workflow on a push to ANY branch
 on:
   push:
+    # This filter ensures the action only runs when files inside the 'tokens' folder change.
     paths:
       - 'tokens/**' 
 
+# 2. Define the job to run the build process
 jobs:
   build-tokens:
     runs-on: ubuntu-latest
     
-    # NEW: Add permissions block here to grant write access to the GITHUB_TOKEN
+    # 🔑 CRITICAL: This grants the GITHUB_TOKEN write access,
+    # allowing the auto-commit action to push changes back to the repo.
     permissions:
       contents: write 
 
+    # Ensures it runs on any push that meets the path criteria.
     if: contains(github.event.head_commit.message, 'token') || github.event_name == 'push'
       
     steps:
@@ -21,9 +26,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Fetch the full history (depth: 0) needed for git-auto-commit-action to work correctly on feature branches.
           fetch-depth: 0 
 
-      # ... (Steps 2.2, 2.3, 2.4 remain the same) ...
+      # 2.2. Set up Node.js environment
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 2.3. Install Style Dictionary (assumes it's in package.json)
+      - name: 📦 Install Dependencies
+        run: npm install 
+
+      # 2.4. Run the Style Dictionary build command
+      # This generates the CSS variables in the 'generated-css/' folder.
       - name: 🔨 Build CSS Variables
         run: npx style-dictionary build --config config.json
       
@@ -31,8 +48,10 @@ jobs:
       - name: 📤 Auto-Commit Generated Files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
+          # Targets the new output file location from config.json
           file_pattern: 'generated-css/variables.css'
           commit_message: '🎨 Chore: Auto-generate CSS variables from token changes on branch ${{ github.ref_name }}'
           commit_user_name: 'GitHub Actions Bot'
           commit_user_email: 'github-actions[bot]@users.noreply.github.com'
+          # Pushes the commit back to the branch that triggered the action (e.g., 'token' branch)
           branch: ${{ github.ref }}
