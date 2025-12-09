@@ -44,7 +44,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           # Only commit the new CSS file
-          file_pattern: 'build/css/variables.css'
+          file_pattern: 'generated-css/variables.css'
           commit_message: '🎨 Chore: Auto-generate CSS variables from token changes on branch ${{ github.ref_name }}'
           commit_user_name: 'GitHub Actions Bot'
           commit_user_email: 'github-actions[bot]@users.noreply.github.com'
