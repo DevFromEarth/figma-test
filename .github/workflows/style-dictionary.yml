@@ -1,21 +1,18 @@
 name: Generate CSS Variables from Tokens
 
-# 1. Trigger the workflow only on changes within the 'tokens' folder
+# 1. Trigger the workflow on a push to ANY branch
 on:
   push:
-    branches:
-      - main # Or your default branch name (e.g., 'master', 'development')
     paths:
-      - 'tokens/**' # This line ensures the workflow only runs when a file inside the 'tokens' directory changes.
+      - 'tokens/**' # Still only triggers if files inside the 'tokens' directory change.
 
 # 2. Define the job to run the build process
 jobs:
   build-tokens:
     runs-on: ubuntu-latest
     
-    # Define environment variables if needed (e.g., for specific node version)
-    environment:
-      name: Production # Optional: If you use GitHub Environments
+    # Optional: Skip job if the push is to main but the tokens folder didn't change (redundant due to path filter, but good for clarity)
+    if: contains(github.event.head_commit.message, 'token') || github.event_name == 'push' # Ensures it runs on any relevant push
       
     steps:
       # 2.1. Checkout the repository content
@@ -24,32 +21,32 @@ jobs:
         # Important: Set token to allow the subsequent push action
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # The auto-commit action requires fetching the current branch history
+          fetch-depth: 0 
 
       # 2.2. Set up Node.js environment
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Use a stable Node.js version
+          node-version: '20'
 
       # 2.3. Install Style Dictionary (assuming it's a dev dependency in package.json)
       - name: 📦 Install Dependencies
-        # If Style Dictionary is not in package.json, you might need to install it globally 
-        # or directly here, e.g., 'npm install style-dictionary'
         run: npm install 
 
       # 2.4. Run the Style Dictionary build command
-      # This command uses your provided 'config.json' to read tokens from 'tokens/**/*.json'
-      # and output 'build/css/variables.css'
       - name: 🔨 Build CSS Variables
+        # This command creates or updates the build/css/variables.css file
         run: npx style-dictionary build --config config.json
       
-      # 2.5. Commit the generated CSS file back to the repository
+      # 2.5. Commit the generated CSS file back to the branch where the change originated
       - name: 📤 Auto-Commit Generated Files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           # Only commit the new CSS file
           file_pattern: 'build/css/variables.css'
-          commit_message: '🎨 Chore: Auto-generate CSS variables from token changes'
-          # Required for GitHub Actions to push back to the repository
+          commit_message: '🎨 Chore: Auto-generate CSS variables from token changes on branch ${{ github.ref_name }}'
           commit_user_name: 'GitHub Actions Bot'
           commit_user_email: 'github-actions[bot]@users.noreply.github.com'
+          # This pushes the generated files back to the current branch (the feature branch)
+          branch: ${{ github.ref }}
