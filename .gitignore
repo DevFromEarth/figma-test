@@ -8,6 +8,9 @@ yarn.lock
 
 # Build outputs
 build/
+!build/                 # EXCEPTION: Stop ignoring the build directory (this is often used as a first step)
+!build/css/             # EXCEPTION: Explicitly allow the 'css' folder inside 'build'
+!build/css/variables.css  # EXCEPTION: Explicitly allow the target CSS file
 dist/
 out/
 
