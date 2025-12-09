@@ -1,0 +1,55 @@
+name: Generate CSS Variables from Tokens
+
+# 1. Trigger the workflow only on changes within the 'tokens' folder
+on:
+  push:
+    branches:
+      - main # Or your default branch name (e.g., 'master', 'development')
+    paths:
+      - 'tokens/**' # This line ensures the workflow only runs when a file inside the 'tokens' directory changes.
+
+# 2. Define the job to run the build process
+jobs:
+  build-tokens:
+    runs-on: ubuntu-latest
+    
+    # Define environment variables if needed (e.g., for specific node version)
+    environment:
+      name: Production # Optional: If you use GitHub Environments
+      
+    steps:
+      # 2.1. Checkout the repository content
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+        # Important: Set token to allow the subsequent push action
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2.2. Set up Node.js environment
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use a stable Node.js version
+
+      # 2.3. Install Style Dictionary (assuming it's a dev dependency in package.json)
+      - name: 📦 Install Dependencies
+        # If Style Dictionary is not in package.json, you might need to install it globally 
+        # or directly here, e.g., 'npm install style-dictionary'
+        run: npm install 
+
+      # 2.4. Run the Style Dictionary build command
+      # This command uses your provided 'config.json' to read tokens from 'tokens/**/*.json'
+      # and output 'build/css/variables.css'
+      - name: 🔨 Build CSS Variables
+        run: npx style-dictionary build --config config.json
+      
+      # 2.5. Commit the generated CSS file back to the repository
+      - name: 📤 Auto-Commit Generated Files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          # Only commit the new CSS file
+          file_pattern: 'build/css/variables.css'
+          commit_message: '🎨 Chore: Auto-generate CSS variables from token changes'
+          # Required for GitHub Actions to push back to the repository
+          commit_user_name: 'GitHub Actions Bot'
+          commit_user_email: 'github-actions[bot]@users.noreply.github.com'
