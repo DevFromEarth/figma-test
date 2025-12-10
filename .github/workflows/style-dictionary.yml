@@ -1,23 +1,23 @@
-name: Generate CSS Variables from Tokens
+name: Generate Design System Variables
 
 # 1. Trigger the workflow on a push to ANY branch
 on:
   push:
-    # This filter ensures the action only runs when files inside the 'tokens' folder change.
+    # Action only runs when files inside the 'tokens' folder change.
     paths:
       - 'tokens/**' 
 
-# 2. Define the job to run the build process
 jobs:
   build-tokens:
     runs-on: ubuntu-latest
     
-    # 🔑 CRITICAL: This grants the GITHUB_TOKEN write access,
+    # 🔑 CRITICAL: Grants the GITHUB_TOKEN write access,
     # allowing the auto-commit action to push changes back to the repo.
     permissions:
       contents: write 
 
     # Ensures it runs on any push that meets the path criteria.
+    # The 'if' conditional is optional but helps ensure flow control.
     if: contains(github.event.head_commit.message, 'token') || github.event_name == 'push'
       
     steps:
@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Fetch the full history (depth: 0) needed for git-auto-commit-action to work correctly on feature branches.
+          # Fetch the full history (depth: 0) needed for the auto-commit action to work correctly on feature branches.
           fetch-depth: 0 
 
       # 2.2. Set up Node.js environment
@@ -35,23 +35,23 @@ jobs:
         with:
           node-version: '20'
 
-      # 2.3. Install Style Dictionary (assumes it's in package.json)
+      # 2.3. Install Style Dictionary (assumes it's listed in package.json devDependencies)
       - name: 📦 Install Dependencies
         run: npm install 
 
       # 2.4. Run the Style Dictionary build command
-      # This generates the CSS variables in the 'generated-css/' folder.
-      - name: 🔨 Build CSS Variables
+      # This generates both CSS and LESS files based on your updated config.json.
+      - name: 🔨 Build CSS and LESS Variables
         run: npx style-dictionary build --config config.json
       
-      # 2.5. Commit the generated CSS file back to the branch where the change originated
+      # 2.5. Commit the generated files back to the branch where the change originated
       - name: 📤 Auto-Commit Generated Files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          # Targets the new output file location from config.json
-          file_pattern: 'generated-css/variables.css'
-          commit_message: '🎨 Chore: Auto-generate CSS variables from token changes on branch ${{ github.ref_name }}'
+          # Targets BOTH the generated CSS and LESS files.
+          file_pattern: 'generated-css/variables.css generated-less/variables.less'
+          commit_message: '🎨 Chore: Auto-generate design tokens (CSS & LESS) on branch ${{ github.ref_name }}'
           commit_user_name: 'GitHub Actions Bot'
           commit_user_email: 'github-actions[bot]@users.noreply.github.com'
-          # Pushes the commit back to the branch that triggered the action (e.g., 'token' branch)
+          # Pushes the commit back to the branch that triggered the action.
           branch: ${{ github.ref }}

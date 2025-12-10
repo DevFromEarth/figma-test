@@ -9,6 +9,15 @@
           "destination": "variables.css",
           "format": "css/variables"
         }]
+      },
+      "less": { 
+        "transformGroup": "less",
+        "prefix": "sd",
+        "buildPath": "generated-less/", 
+        "files": [{
+          "destination": "variables.less", 
+          "format": "less/variables"       
+        }]
       }
     }
 }
