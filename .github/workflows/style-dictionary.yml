@@ -1,9 +1,11 @@
 name: Generate Design System Variables
 
-# 1. Trigger the workflow on a push to ANY branch
+# Trigger only on pushes to the 'main' branch
 on:
   push:
-    # Action only runs when files inside the 'tokens' folder change.
+    branches:
+      - main
+    # Only run if files inside the 'tokens' directory (or its subdirectories) change.
     paths:
       - 'tokens/**' 
 
@@ -11,47 +13,41 @@ jobs:
   build-tokens:
     runs-on: ubuntu-latest
     
-    # 🔑 CRITICAL: Grants the GITHUB_TOKEN write access,
-    # allowing the auto-commit action to push changes back to the repo.
+    # CRITICAL: Grant the GITHUB_TOKEN write access for the auto-commit action.
     permissions:
       contents: write 
 
-    # Ensures it runs on any push that meets the path criteria.
-    # The 'if' conditional is optional but helps ensure flow control.
-    if: contains(github.event.head_commit.message, 'token') || github.event_name == 'push'
-      
     steps:
-      # 2.1. Checkout the repository content
-      - name: ⬇️ Checkout Repository
+      # Checkout the repository content.
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Fetch the full history (depth: 0) needed for the auto-commit action to work correctly on feature branches.
+          # Fetch full history needed for the auto-commit action.
           fetch-depth: 0 
 
-      # 2.2. Set up Node.js environment
-      - name: ⚙️ Setup Node.js
+      # Set up Node.js environment.
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 2.3. Install Style Dictionary (assumes it's listed in package.json devDependencies)
-      - name: 📦 Install Dependencies
+      # Install project dependencies (Style Dictionary).
+      - name: Install Dependencies
         run: npm install 
 
-      # 2.4. Run the Style Dictionary build command
-      # This generates both CSS and LESS files based on your updated config.json.
-      - name: 🔨 Build CSS and LESS Variables
+      # Run Style Dictionary to generate CSS and LESS files based on config.json.
+      - name: Build CSS and LESS Variables
         run: npx style-dictionary build --config config.json
       
-      # 2.5. Commit the generated files back to the branch where the change originated
-      - name: 📤 Auto-Commit Generated Files
+      # Commit the generated files back to the 'main' branch.
+      - name: Auto-Commit Generated Files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          # Targets BOTH the generated CSS and LESS files.
+          # Target both the CSS and LESS output files.
           file_pattern: 'generated-css/variables.css generated-less/variables.less'
-          commit_message: '🎨 Chore: Auto-generate design tokens (CSS & LESS) on branch ${{ github.ref_name }}'
+          commit_message: '🎨 Chore: Auto-generate design tokens (CSS & LESS) on main'
           commit_user_name: 'GitHub Actions Bot'
           commit_user_email: 'github-actions[bot]@users.noreply.github.com'
-          # Pushes the commit back to the branch that triggered the action.
-          branch: ${{ github.ref }}
+          # Target the main branch for the commit.
+          branch: main
